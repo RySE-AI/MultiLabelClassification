@@ -68,36 +68,3 @@ class Backbone(nn.Module):
         return x
     
 
-class MultiLabelClassifier(pl.LightningModule):
-    def __init__(self, lr,):
-        super().__init__()
-        self.backbone = Backbone()
-        self.classifier = ClassifierHead(self.backbone._output_layer_size,
-                                         hidden_size_1=,
-                                         hidden_size_2=,
-                                         )
-
-    def training_step(self, batch, batch_idx):
-        images, targets = batch
-
-
-    def validation_step(self, batch, batch_idx):
-        images, targets = batch
-        x = x.view(x.size(0), -1)
-        z = self.encoder(x)
-        x_hat = self.decoder(z)
-        val_loss = F.mse_loss(x_hat, x)
-        self.log("val_loss", val_loss)
-
-    def test_step(self, batch, batch_idx):
-        # this is the test loop
-        images, targets = batch
-        outputs =
-        z = self.encoder(x)
-        x_hat = self.decoder(z)
-        test_loss = F.mse_loss(x_hat, x)
-        self.log("test_loss", test_loss)
-
-    def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
