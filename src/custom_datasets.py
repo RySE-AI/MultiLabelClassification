@@ -1,6 +1,9 @@
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from torchvision.datasets.folder import default_loader, IMG_EXTENSIONS
 from torchvision.datasets.folder import has_file_allowed_extension
 from torchvision.datasets.vision import VisionDataset
+from torch.utils.data import DataLoader
+import lightning.pytorch as pl
 
 import torch
 import numpy as np
@@ -14,7 +17,7 @@ from typing import Optional, cast, Callable, Any, List, Dict
 
 
 def _flatten_list(big_list: List) -> List[str]:
-    """ Flattening a given python list from 2D to 1D. This functions is used for
+    """Flattening a given python list from 2D to 1D. This functions is used for
     the multilabeling ImageFolder to prepare the class strings to make a set.
 
     Args:
@@ -50,7 +53,7 @@ def _create_target(target_indexes: List[int], num_classes: int) -> List[float]:
 
 
 class MultiLabelImageFolder(VisionDataset):
-    """ This class is a variation of torch's ImageFolder and inherits from the 
+    """This class is a variation of torch's ImageFolder and inherits from the
     VisionDataset class. The key distinction lies in the creation of classes and
     the representation of targets. Unlike ImageFolder, this implementation
     allows for the use of a string separator (by default "-") to assign multiple
@@ -96,22 +99,24 @@ class MultiLabelImageFolder(VisionDataset):
     https://discuss.pytorch.org/t/is-there-an-example-for-multi-class-multilabel-classification-in-pytorch/53579/7
     """
 
-    def __init__(self,
-                 root: str,
-                 extensions=IMG_EXTENSIONS,
-                 loader: Callable[[str], Any] = default_loader,
-                 transform: Optional[Callable] = None,
-                 target_transform: Optional[Callable] = None,
-                 is_valid_file: Optional[Callable[[str], bool]] = None,
-                 separator: str = "-"):
-
-        super().__init__(root, transform=transform,
-                         target_transform=target_transform)
+    def __init__(
+        self,
+        root: str,
+        extensions=IMG_EXTENSIONS,
+        loader: Callable[[str], Any] = default_loader,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        is_valid_file: Optional[Callable[[str], bool]] = None,
+        separator: str = "-",
+    ):
+        super().__init__(root, transform=transform, target_transform=target_transform)
 
         cls_combinations, classes, class_to_idx = self._find_classes(
-            self.root, separator)
+            self.root, separator
+        )
         samples = self._make_dataset(
-            root, class_to_idx, extensions, is_valid_file, separator)
+            root, class_to_idx, extensions, is_valid_file, separator
+        )
 
         self.loader = loader
         self.extenstions = extensions
@@ -123,37 +128,42 @@ class MultiLabelImageFolder(VisionDataset):
         self.samples = samples
         self.targets = [s[1] for s in samples]
 
-        self.imgs = self.samples # copied from ImageFolder
+        self.imgs = self.samples  # copied from ImageFolder
 
     def _find_classes(self, directory: str, separator: str):
-        class_combinations = sorted(entry.name.split(
-            separator) for entry in os.scandir(directory) if entry.is_dir())
+        class_combinations = sorted(
+            entry.name.split(separator)
+            for entry in os.scandir(directory)
+            if entry.is_dir()
+        )
         if not class_combinations:
             raise FileNotFoundError(
-                f"Couldn't find any class combinations folder in {directory}.")
+                f"Couldn't find any class combinations folder in {directory}."
+            )
         classes = sorted(set(_flatten_list(class_combinations)))
         classes_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
 
         return class_combinations, classes, classes_to_idx
 
-    def _make_dataset(self, root, class_to_idx, extensions, is_valid_file,
-                      separator):
-
+    def _make_dataset(self, root, class_to_idx, extensions, is_valid_file, separator):
         directory = os.path.expanduser(root)
 
         if class_to_idx is None:
             _, _, class_to_idx = self._find_classes(directory, separator)
         elif not class_to_idx:
             raise ValueError(
-                "'class_to_index' must have at least one entry to collect any samples.")
+                "'class_to_index' must have at least one entry to collect any samples."
+            )
 
         both_none = extensions is None and is_valid_file is None
         both_something = extensions is not None and is_valid_file is not None
         if both_none or both_something:
             raise ValueError(
-                "Both extensions and is_valid_file cannot be None or not None at the same time")
+                "Both extensions and is_valid_file cannot be None or not None at the same time"
+            )
 
         if extensions is not None:
+
             def is_valid_file(x: str) -> bool:
                 # type: ignore[arg-type]
                 return has_file_allowed_extension(x, extensions)
@@ -170,14 +180,14 @@ class MultiLabelImageFolder(VisionDataset):
             if not os.path.isdir(target_class_dir):
                 continue
             target_classes = Path(target_class_dir).stem.split(separator)
-            target_indexes = [class_to_idx[target_class]
-                              for target_class in target_classes]
+            target_indexes = [
+                class_to_idx[target_class] for target_class in target_classes
+            ]
 
             # Binary target, for each class = 1 at specifc indexes
             target_array = _create_target(target_indexes, num_classes)
 
-            for root, _, fnames in sorted(
-                    os.walk(target_class_dir, followlinks=True)):
+            for root, _, fnames in sorted(os.walk(target_class_dir, followlinks=True)):
                 for fname in sorted(fnames):
                     path = os.path.join(root, fname)
 
@@ -201,3 +211,83 @@ class MultiLabelImageFolder(VisionDataset):
 
     def __len__(self):
         return len(self.samples)
+
+
+def split_train_set(root: str, transform) -> [VisionDataset, VisionDataset]:
+    pass
+
+
+#TODO: Not done yet! Implement random split and balanced split
+class MultiLabelDataModule(pl.LightningDataModule):
+    def __init__(
+        self,
+        data_dirs: dict,
+        train_transform,
+        inference_transform,
+        batch_size: int = 16,
+        seed: int = None,
+        num_workers: int = 4,
+        split_method="random",
+        pin_memory: bool = True,
+        shuffle: bool = True,
+    ):
+        super().__init__()
+        self.data_dirs = data_dirs
+        self.batch_size = batch_size
+        self.train_transform = train_transform
+        self.inference_transform = inference_transform
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+        self.split_method = split_method
+        self.shuffle = shuffle
+
+        if seed:
+            pl.seed_everything(seed, workers=True)
+
+    def setup(self, stage: str = None):
+        if stage == "fit" or stage is None:
+            if self.data_dirs["train"] == self.data_dirs["valid"]:
+                pass
+            else:
+                self.train_dataset = MultiLabelImageFolder(
+                    root=self.data_dirs["train"], transform=self.train_transform
+                )
+                self.val_dataset = MultiLabelImageFolder(
+                    root=self.data_dirs["val"], transform=self.inference_transform
+                )
+        if stage == "test":
+            self.test_dataset = MultiLabelImageFolder(
+                root=self.data_dirs["test"], transform=self.inference_transform
+            )
+
+    def train_dataloader(self) -> DataLoader:
+        train_loader = DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=self.shuffle,
+        )
+        return train_loader
+
+    def val_dataloader(self) -> DataLoader:
+        val_loader = DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=self.shuffle,
+        )
+        return val_loader
+
+    def test_dataloader(self) -> DataLoader:
+        test_loader = DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+        )
+        return test_loader
+
+    def predict_dataloader(self):
+        pass
