@@ -19,11 +19,11 @@ def _flatten_list(big_list: List) -> List[str]:
 
     Args:
         big_list (List): A list of classes e.g.:
-        [["class_a", "class_b"],["class_c], ["class_c", "class_d"]]
+        [["class_a", "class_b"], ["class_c], ["class_c", "class_d"]]
 
     Returns:
         List[str]: flattened list of the input
-        ["class_a", "class_b","class_c, "class_c", "class_d"]
+        ["class_a", "class_b", "class_c", "class_c", "class_d"]
     """
     return [item for sublist in big_list for item in sublist]
 
@@ -50,14 +50,13 @@ def _create_target(target_indexes: List[int], num_classes: int) -> List[float]:
 
 
 class MultiLabelImageFolder(VisionDataset):
-    """ This class inherits from the VisionDataset and slighty differs to
-    torch's ImageFolder. The main difference is in the the creation of the
-    classes and the target's representation. With this ImageFolder you can use a
-    string separator (by default "-") to define multiple classes for one image.
+    """ This class is a variation of torch's ImageFolder and inherits from the 
+    VisionDataset class. The key distinction lies in the creation of classes and
+    the representation of targets. Unlike ImageFolder, this implementation
+    allows for the use of a string separator (by default "-") to assign multiple
+    classes to a single image.
 
-    For example
-
-    Your folder structure of your dataset should look like this:
+    For instance, the folder structure of the dataset should follow this format:
 
     directory/
             ├── class_a
@@ -71,27 +70,29 @@ class MultiLabelImageFolder(VisionDataset):
                 ├── b_1.ext
                 └── b_2.ext
 
-    It's possible to pass as many classes for one picture as you want. There is
-    no difference in the order of the classes (class_a-class_b == class_b-class_a).
-    But don't make it to complex. Maybe consider to use Object Detection instead.
+    It is possible to assign as many classes as desired to a single image. The
+    order of the classes does not matter (class_a-class_b is equivalent to
+    class_b-class_a). However, it is advisable to avoid excessive complexity and
+    consider using Object Detection instead.
 
-    The target of one image is a binary representation (0.0 or 1.0) to the
-    corresponding classes (multi-hot-encoded style).
+    The target representation for each image is a binary tensor (0.0 or 1.0)
+    corresponding to the classes present (in a multi-hot-encoded style).
 
-    For the example above we have 2 distinct classes: class_a and class_b
-    The target tensors for the images will look like:
+    For the given example, we have two distinct classes: class_a and class_b.
+    The target tensors for the images will appear as follows:
 
     target_a = [1.0, 0.0]
     target_a_&_b = [1.0, 1.0]
     target_b = [0.0, 1.0]
 
-    Right now there is no implementation to weight the target array in favor to
-    one class.
+    Currently, there is no implemented functionality to weight the target array
+    in favor of a specific class.
 
-    ATTENTION: It's recommended to use the loss function BCEWithLogitsLoss, so
-    there is no need of using an activation function in the last layer! A
-    Sigmoid "activation" is internally defined in this loss function.
-    For reference see:
+    ATTENTION: It is highly recommended to utilize the BCEWithLogitsLoss as the
+    loss function. Therefore, there is no necessity to apply an activation
+    function in the final layer. The BCEWithLogitsLoss function internally
+    incorporates a Sigmoid "activation." For further information, please refer
+    to the following link:
     https://discuss.pytorch.org/t/is-there-an-example-for-multi-class-multilabel-classification-in-pytorch/53579/7
     """
 
