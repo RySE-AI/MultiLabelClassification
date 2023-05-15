@@ -6,6 +6,8 @@ from torchmetrics import MetricCollection
 from torchmetrics.classification import MultilabelAccuracy
 
 
+#TODO: Add Docstrings
+#TODO: Check other Backbones (only checked resnet)
 def basic_linear_block(input_size: int, output_size: int, dropout: float):
     linear_layer = nn.Sequential(
         nn.Linear(input_size, output_size),
