@@ -8,6 +8,8 @@ from torchmetrics.classification import MultilabelAccuracy
 
 #TODO: Add Docstrings
 #TODO: Check other Backbones (only checked resnet)
+#TODO: xxx_step Code repetitions
+ 
 def basic_linear_block(input_size: int, output_size: int, dropout: float):
     linear_layer = nn.Sequential(
         nn.Linear(input_size, output_size),
@@ -43,7 +45,7 @@ class ClassifierHead(nn.Module):
         return x
 
 
-class Backbone(nn.Module):
+class ResnetBackbone(nn.Module):
     def __init__(
         self,
         freeze_params: bool = True,
@@ -56,7 +58,6 @@ class Backbone(nn.Module):
             weights = None
 
         self.freezed = freeze_params
-
         self.backbone = torch.hub.load("pytorch/vision", backbone, weights=weights)
 
         # If you pass a state_dict pth for the network it will load your weights
@@ -70,12 +71,15 @@ class Backbone(nn.Module):
             for param in self.backbone.parameters():
                 param.requires_grad = False
 
-        final_layer = list(self.backbone.named_modules())[-1]
-
+        #final_layer = list(self.backbone.named_modules())[-1]
+        final_layer = list(self.backbone.children())[-1]
+        
         # saving the output size for the linear classifier's input init.
-        self._output_layer_size = final_layer[1].in_features
-        # Not sure if this will work for all backbones :D Resnet checked
-        setattr(self.backbone, final_layer[0], nn.Identity())
+        self._output_layer_size = final_layer.in_features
+        
+        # Replace Classifier with Identiy Layer
+        self.backbone.fc = nn.Identity()
+        #setattr(self.backbone, final_layer[0], nn.Identity())
 
     def forward(self, x):
         x = self.backbone(x)
@@ -92,7 +96,7 @@ class MultiLabelClassifier(pl.LightningModule):
         hidden_size_2: int = 2048,
         dropout: float = 0.5,
         lr: float = 1e-3,
-        criterion=nn.BCELoss(),
+        criterion=nn.BCEWithLogitsLoss(),
         test_metric=None,
     ):
         super().__init__()
@@ -132,7 +136,7 @@ class MultiLabelClassifier(pl.LightningModule):
         train_loss = self.criterion(logits, targets)
         # torchmetrics uses a sigmoid function to calculate the accurracy
         self.train_metric(logits, targets)
-
+        
         # Logging
         self.log("train_loss", train_loss, on_step=True, on_epoch=True)
         self.log("train_acc", self.train_metric, on_step=True, on_epoch=True)
