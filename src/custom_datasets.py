@@ -21,11 +21,11 @@ def _flatten_list(big_list: List) -> List[str]:
     the multilabeling ImageFolder to prepare the class strings to make a set.
 
     Args:
-        big_list (List): A list of classes e.g.:
+        big_list (List) - A list of classes e.g.:
         [["class_a", "class_b"], ["class_c], ["class_c", "class_d"]]
 
     Returns:
-        List[str]: flattened list of the input
+        List[str] - flattened list of the input
         ["class_a", "class_b", "class_c", "class_c", "class_d"]
     """
     return [item for sublist in big_list for item in sublist]
@@ -171,7 +171,7 @@ class MultiLabelImageFolder(VisionDataset):
         is_valid_file = cast(Callable[[str], bool], is_valid_file)
 
         instances = []
-        available_classes = set()  # TODO: Make safety check for classes like in ImageFolder
+        available_classes = set() # TODO: Make safety check for classes like in ImageFolder
 
         class_folders = glob(root + "/*/", recursive=True)
         num_classes = len(class_to_idx)
@@ -217,7 +217,9 @@ def split_train_set(root: str, transform) -> [VisionDataset, VisionDataset]:
     pass
 
 
-#TODO: Not done yet! Implement random split and balanced split
+# TODO: Not done yet! Implement random split and balanced split
+# Attention: I have problems with memory while training. The memory is still
+# allocated after training
 class MultiLabelDataModule(pl.LightningDataModule):
     def __init__(
         self,
@@ -242,11 +244,11 @@ class MultiLabelDataModule(pl.LightningDataModule):
         self.shuffle = shuffle
 
         if seed:
-            pl.seed_everything(seed, workers=True)
+            pl.seed_everything(seed)
 
     def setup(self, stage: str = None):
         if stage == "fit" or stage is None:
-            if self.data_dirs["train"] == self.data_dirs["valid"]:
+            if self.data_dirs["train"] == self.data_dirs["val"]:
                 pass
             else:
                 self.train_dataset = MultiLabelImageFolder(
@@ -267,6 +269,7 @@ class MultiLabelDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=self.shuffle,
+            persistent_workers=True,
         )
         return train_loader
 
@@ -276,16 +279,17 @@ class MultiLabelDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            shuffle=self.shuffle,
+            persistent_workers=True,
         )
         return val_loader
 
     def test_dataloader(self) -> DataLoader:
         test_loader = DataLoader(
-            self.val_dataset,
+            self.test_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
+            persistent_workers=True,
         )
         return test_loader
 
