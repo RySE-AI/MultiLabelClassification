@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: Add Logger
 # TODO: Add docstrings
-# TODO: Multithreading?
+# TODO: Multiprocessing?
 def scrape_card_urls(soup: BeautifulSoup, base_url: str) -> Dict[str, str]:
     img_urls = {}
     for img_item in soup.find_all("img"):
