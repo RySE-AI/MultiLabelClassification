@@ -1,10 +1,14 @@
-# Custom
+# Experiment specific
+*.ckpt
 data/*
 mlruns/*
 */mlruns/*
 testbook*.ipynb
 */ml-runs/*
 */lightning_logs/*
+
+# Mac Specific
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
