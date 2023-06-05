@@ -5,12 +5,19 @@ from torch import optim, nn, utils, Tensor
 from torchmetrics import MetricCollection
 from torchmetrics.classification import MultilabelAccuracy
 
+from typing import Optional
 
-#TODO: Add Docstrings
-#TODO: Check other Backbones (only checked resnet)
-#TODO: xxx_step Code repetitions
- 
-def basic_linear_block(input_size: int, output_size: int, dropout: float):
+
+# TODO: Add Docstrings
+# TODO: Check other Backbones (only checked resnet)
+# TODO: xxx_step Code repetitions
+
+
+def basic_linear_block(
+    input_size: int, output_size: int, dropout: float
+) -> nn.Sequential:
+    """Return a linear building Block with dropout and Leaky Relu Activation."""
+
     linear_layer = nn.Sequential(
         nn.Linear(input_size, output_size),
         nn.Dropout(p=dropout),
@@ -21,6 +28,10 @@ def basic_linear_block(input_size: int, output_size: int, dropout: float):
 
 
 class ClassifierHead(nn.Module):
+    """MLP Classifier Head to replace the classifier of a bacbbone like Resnet.
+    The Classifier contains two hidden layers with Dropout/Leaky ReLu and the
+    last layer is a simple linear layer without activation to get the logits"""
+
     def __init__(
         self,
         input_size: int,
@@ -29,6 +40,16 @@ class ClassifierHead(nn.Module):
         num_classes: int,
         dropout: float = 0.5,
     ):
+        """Initialize a ClassifierHead Instance with following parameters:
+
+        Args:
+            input_size (int): Input Layer size, usually depending on your
+            backbone
+            hidden_size_1 (int): Size of the 1st hidden layer
+            hidden_size_2 (int): Size of the 2nd hidden layer
+            num_classes (int): Size of your output = number of classes
+            dropout (float, optional): Set the dropout prob for the hidden layers. Defaults to 0.5.
+        """
         super().__init__()
         classifier_config = OrderedDict(
             {
@@ -46,16 +67,31 @@ class ClassifierHead(nn.Module):
 
 
 class ResnetBackbone(nn.Module):
+    """Head-/classifierless backbone class based on Resnet where the classifier
+    is replaced with a Identity layer to extract the features of the backbone.
+    """
+
     def __init__(
         self,
         freeze_params: bool = True,
-        state_dict_path=None,
+        state_dict_path: Optional[str] = None,
         weights="IMAGENET1K_V2",
         backbone="resnet50",
     ):
+        """Intitalise the Resnet
+
+        Args:
+            freeze_params (bool, optional): To freeze the backbones weights. Defaults to True.
+            state_dict_path (str, optional): If you want to pass your own trained resnet based model. Pass the .pth file. Defaults to None.
+            weights (str, optional): Define the weights you want to use for your backbone. Defaults to "IMAGENET1K_V2".
+            backbone (str, optional): Define which Resnet Backbone you want to use. Defaults to "resnet50".
+        """
         super().__init__()
         if state_dict_path is not None:
             weights = None
+
+        if "resnet" not in backbone:
+            raise ValueError("Please only use a Resnet architecture based Backbone")
 
         self.freezed = freeze_params
         self.backbone = torch.hub.load("pytorch/vision", backbone, weights=weights)
@@ -71,15 +107,15 @@ class ResnetBackbone(nn.Module):
             for param in self.backbone.parameters():
                 param.requires_grad = False
 
-        #final_layer = list(self.backbone.named_modules())[-1]
+        # final_layer = list(self.backbone.named_modules())[-1]
         final_layer = list(self.backbone.children())[-1]
-        
+
         # saving the output size for the linear classifier's input init.
         self._output_layer_size = final_layer.in_features
-        
+
         # Replace Classifier with Identiy Layer
         self.backbone.fc = nn.Identity()
-        #setattr(self.backbone, final_layer[0], nn.Identity())
+        # setattr(self.backbone, final_layer[0], nn.Identity())
 
     def forward(self, x):
         x = self.backbone(x)
@@ -88,6 +124,10 @@ class ResnetBackbone(nn.Module):
 
 
 class MultiLabelClassifier(pl.LightningModule):
+    """Lightning class for our experiment with a ResnetBackbone and a
+    ClassifierHead. This module is specified for a multi labeling task.
+    """
+
     def __init__(
         self,
         num_classes: int,
@@ -102,7 +142,7 @@ class MultiLabelClassifier(pl.LightningModule):
         super().__init__()
 
         # Model Configuration
-        self.backbone = Backbone(**backbone_config)
+        self.backbone = ResnetBackbone(**backbone_config)
         self.classifier = ClassifierHead(
             self.backbone._output_layer_size,
             hidden_size_1=hidden_size_1,
@@ -136,7 +176,7 @@ class MultiLabelClassifier(pl.LightningModule):
         train_loss = self.criterion(logits, targets)
         # torchmetrics uses a sigmoid function to calculate the accurracy
         self.train_metric(logits, targets)
-        
+
         # Logging
         self.log("train_loss", train_loss, on_step=True, on_epoch=True)
         self.log("train_acc", self.train_metric, on_step=True, on_epoch=True)
