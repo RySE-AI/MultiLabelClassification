@@ -13,20 +13,16 @@ from pathlib import Path
 from glob import glob
 
 # For Typing Annotations
-from typing import Optional, cast, Callable, Any, List, Dict
+from typing import Optional, cast, Callable, Any, List, Dict, Tuple
 
 
 def _flatten_list(big_list: List) -> List[str]:
     """Flattening a given python list from 2D to 1D. This functions is used for
     the multilabeling ImageFolder to prepare the class strings to make a set.
 
-    Args:
-        big_list (List) - A list of classes e.g.:
-        [["class_a", "class_b"], ["class_c], ["class_c", "class_d"]]
-
-    Returns:
-        List[str] - flattened list of the input
-        ["class_a", "class_b", "class_c", "class_c", "class_d"]
+    Example:
+        input - [["class_a", "class_b"], ["class_c], ["class_c", "class_d"]]
+        return - ["class_a", "class_b", "class_c", "class_c", "class_d"]
     """
     return [item for sublist in big_list for item in sublist]
 
@@ -47,7 +43,7 @@ def _create_target(target_indexes: List[int], num_classes: int) -> List[float]:
         each class the value at the index will be 1.0 otherwise it's 0.0
 
     """
-    target_array = np.zeros(num_classes)
+    target_array = np.zeros(num_classes)  # Initialize Target array with zeroes
     target_array[target_indexes] = 1.0
     return list(target_array)
 
@@ -111,45 +107,46 @@ class MultiLabelImageFolder(VisionDataset):
     ):
         super().__init__(root, transform=transform, target_transform=target_transform)
 
-        cls_combinations, classes, class_to_idx = self._find_classes(
-            self.root, separator
-        )
-        samples = self._make_dataset(
-            root, class_to_idx, extensions, is_valid_file, separator
-        )
-
+        self.separator = separator
         self.loader = loader
         self.extenstions = extensions
+        
+        classes_result: tuple = self._find_classes()
+        samples = self._make_dataset(
+            root,
+            classes_result[2],  # =self.class_to_idx
+            extensions,
+            is_valid_file
+        )
 
-        self.cls_combinations: List = cls_combinations
-        self.classes: List = classes
-        self.class_to_idx: Dict = class_to_idx
-        self.idx_to_classes = {y: x for x, y in class_to_idx.items()}
+        self.cls_combinations: List = classes_result[0]
+        self.classes: List = classes_result[1]
+        self.class_to_idx: Dict = classes_result[2]
+        self.idx_to_classes: Dict = {y: x for x, y in self.class_to_idx.items()}
         self.samples = samples
         self.targets = [s[1] for s in samples]
 
         self.imgs = self.samples  # copied from ImageFolder
 
-    def _find_classes(self, directory: str, separator: str):
+    def _find_classes(self) -> Tuple[List, List, Dict]:
+        directory = os.path.expanduser(self.root)
         class_combinations = sorted(
-            entry.name.split(separator)
+            entry.name.split(self.separator)
             for entry in os.scandir(directory)
             if entry.is_dir()
         )
         if not class_combinations:
             raise FileNotFoundError(
-                f"Couldn't find any class combinations folder in {directory}."
+                f"Couldn't find any class combinations folder in {self.root}."
             )
         classes = sorted(set(_flatten_list(class_combinations)))
         classes_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
 
         return class_combinations, classes, classes_to_idx
 
-    def _make_dataset(self, root, class_to_idx, extensions, is_valid_file, separator):
-        directory = os.path.expanduser(root)
-
+    def _make_dataset(self, root, class_to_idx, extensions, is_valid_file):
         if class_to_idx is None:
-            _, _, class_to_idx = self._find_classes(directory, separator)
+            _, _, class_to_idx = self._find_classes()
         elif not class_to_idx:
             raise ValueError(
                 "'class_to_index' must have at least one entry to collect any samples."
@@ -179,7 +176,7 @@ class MultiLabelImageFolder(VisionDataset):
         for target_class_dir in class_folders:
             if not os.path.isdir(target_class_dir):
                 continue
-            target_classes = Path(target_class_dir).stem.split(separator)
+            target_classes = Path(target_class_dir).stem.split(self.separator)
             target_indexes = [
                 class_to_idx[target_class] for target_class in target_classes
             ]
