@@ -127,6 +127,10 @@ class MultiLabelImageFolder(VisionDataset):
         self.targets = [s[1] for s in samples]
 
         self.imgs = self.samples  # copied from ImageFolder
+    
+    #TODO: Use utils print_dataset_information for str representation    
+    def __str__(self):
+        pass
 
     def _find_classes(self) -> Tuple[List, List, Dict]:
         directory = os.path.expanduser(self.root)
@@ -228,6 +232,7 @@ class MultiLabelDataModule(pl.LightningDataModule):
         num_workers: int = 4,
         split_method="random",
         pin_memory: bool = True,
+        persistent_workers: bool = True,
         shuffle: bool = True,
     ):
         super().__init__()
@@ -239,6 +244,7 @@ class MultiLabelDataModule(pl.LightningDataModule):
         self.pin_memory = pin_memory
         self.split_method = split_method
         self.shuffle = shuffle
+        self.persistent_workers = persistent_workers
 
         if seed:
             pl.seed_everything(seed)
@@ -266,7 +272,7 @@ class MultiLabelDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             shuffle=self.shuffle,
-            persistent_workers=True,
+            persistent_workers=self.persistent_workers,
         )
         return train_loader
 
@@ -276,7 +282,7 @@ class MultiLabelDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            persistent_workers=True,
+            persistent_workers=self.persistent_workers,
         )
         return val_loader
 
@@ -286,7 +292,7 @@ class MultiLabelDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            persistent_workers=True,
+            persistent_workers=self.persistent_workers,
         )
         return test_loader
 
