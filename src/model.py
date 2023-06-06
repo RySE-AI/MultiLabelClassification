@@ -1,9 +1,9 @@
 import torch
 import lightning.pytorch as pl
 from collections import OrderedDict
-from torch import optim, nn, utils, Tensor
+from torch import optim, nn
 from torchmetrics import MetricCollection
-from torchmetrics.classification import MultilabelAccuracy
+from torchmetrics.classification import MultilabelAccuracy, MultilabelPrecision, MultilabelRecall
 
 from typing import Optional
 
@@ -11,8 +11,6 @@ from typing import Optional
 # TODO: Add Docstrings
 # TODO: Check other Backbones (only checked resnet)
 # TODO: xxx_step Code repetitions
-
-
 def basic_linear_block(
     input_size: int, output_size: int, dropout: float
 ) -> nn.Sequential:
@@ -81,17 +79,21 @@ class ResnetBackbone(nn.Module):
         """Intitalise the Resnet
 
         Args:
-            freeze_params (bool, optional): To freeze the backbones weights. Defaults to True.
-            state_dict_path (str, optional): If you want to pass your own trained resnet based model. Pass the .pth file. Defaults to None.
-            weights (str, optional): Define the weights you want to use for your backbone. Defaults to "IMAGENET1K_V2".
-            backbone (str, optional): Define which Resnet Backbone you want to use. Defaults to "resnet50".
+            freeze_params (bool, optional): To freeze the backbones weights.
+            Defaults to True.
+            state_dict_path (str, optional): If you want to pass your own 
+            trained resnet based model. Pass the .pth file. Defaults to None.
+            weights (str, optional): Define the weights you want to use for your
+            backbone. Defaults to "IMAGENET1K_V2".
+            backbone (str, optional): Define which Resnet Backbone you want to
+            use. Defaults to "resnet50".
         """
         super().__init__()
         if state_dict_path is not None:
             weights = None
 
         if "resnet" not in backbone:
-            raise ValueError("Please only use a Resnet architecture based Backbone")
+            raise ValueError("Please use a Resnet architecture based Backbone")
 
         self.freezed = freeze_params
         self.backbone = torch.hub.load("pytorch/vision", backbone, weights=weights)
@@ -137,10 +139,10 @@ class MultiLabelClassifier(pl.LightningModule):
         dropout: float = 0.5,
         lr: float = 1e-3,
         criterion=nn.BCEWithLogitsLoss(),
-        test_metric=None,
+        test_metrics=None,
     ):
         super().__init__()
-
+        self.save_hyperparameters(ignore=['criterion'])
         # Model Configuration
         self.backbone = ResnetBackbone(**backbone_config)
         self.classifier = ClassifierHead(
@@ -154,14 +156,20 @@ class MultiLabelClassifier(pl.LightningModule):
         # Attributes
         self.lr = lr
         self.criterion = criterion
+        
+        metrics = MetricCollection([
+            MultilabelAccuracy(num_classes),
+            MultilabelPrecision(num_classes),
+            MultilabelRecall(num_classes)
+        ])
 
-        self.train_metric = MultilabelAccuracy(num_classes)
-        self.valid_metric = MultilabelAccuracy(num_classes)
+        self.train_metrics = metrics.clone(prefix="train_")
+        self.valid_metrics = metrics.clone(prefix="val_")
 
-        if test_metric:
-            self.test_metric = test_metric
+        if test_metrics:
+            self.test_metrics = test_metrics
         else:
-            self.test_metric = MultilabelAccuracy(num_classes)
+            self.test_metrics = metrics.clone(prefix="test_")
 
     def forward(self, x):
         features = self.backbone(x)
@@ -175,11 +183,11 @@ class MultiLabelClassifier(pl.LightningModule):
 
         train_loss = self.criterion(logits, targets)
         # torchmetrics uses a sigmoid function to calculate the accurracy
-        self.train_metric(logits, targets)
+        self.train_metrics(logits, targets)
 
         # Logging
         self.log("train_loss", train_loss, on_step=True, on_epoch=True)
-        self.log("train_acc", self.train_metric, on_step=True, on_epoch=True)
+        self.log_dict(self.train_metrics, on_step=True, on_epoch=True)
 
         return train_loss
 
@@ -188,11 +196,11 @@ class MultiLabelClassifier(pl.LightningModule):
         logits = self(images)
 
         val_loss = self.criterion(logits, targets)
-        self.valid_metric(logits, targets)
+        self.valid_metrics(logits, targets)
 
         # Logging
         self.log("val_loss", val_loss, on_step=True, on_epoch=True)
-        self.log("valid_acc", self.valid_metric, on_step=True, on_epoch=True)
+        self.log_dict(self.valid_metrics, on_step=True, on_epoch=True)
 
         return val_loss
 
@@ -201,11 +209,11 @@ class MultiLabelClassifier(pl.LightningModule):
         logits = self(images)
 
         test_loss = self.criterion(logits, targets)
-        self.test_metric(logits, targets)
+        self.test_metrics(logits, targets)
 
         # Logging only at epoch end
         self.log("test_loss", test_loss, on_step=False, on_epoch=True)
-        self.log("test_acc", self.test_metric, on_step=False, on_epoch=True)
+        self.log_dict(self.test_metrics, on_step=False, on_epoch=True)
 
     def configure_optimizers(self):
         if self.backbone.freezed:
