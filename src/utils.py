@@ -5,6 +5,9 @@ from collections import Counter
 import cv2
 import numpy as np
 import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torchmetrics.metric import Metric
 
 from .custom_datasets import MultiLabelImageFolder
 
@@ -52,7 +55,6 @@ def print_dataset_information(dataset_dir: str):
     print(50*"-")
     
 
-
 def check_img_shapes(image_folder: str,
                      ext = ".jpg") -> Counter:
     image_paths = pathlib.Path(image_folder).rglob(f"**/*{ext}")
@@ -60,7 +62,7 @@ def check_img_shapes(image_folder: str,
     
     return Counter(shapes)
 
-#TODO: 
+
 def calculate_mean_stds_per_channel(image_folder,
                                     ext = ".jpg"):
     channels_mean = np.zeros(3)
@@ -82,3 +84,27 @@ def calculate_mean_stds_per_channel(image_folder,
     channels_std /= count
 
     return channels_mean[::-1], channels_std[::-1] #rearrange for RGB Order
+
+
+def test_model(model: nn.Module,
+               metric: Metric,
+               test_loader: DataLoader,
+               device: str = "auto"):
+    
+    if device == "auto":
+        device = check_gpu_available()
+        print(f"Model will run on {device}")
+    
+    test_metrics = metric.to(device)
+    model.to(device)
+    model.eval()
+
+    with torch.no_grad():
+        for images, targets in test_loader:
+            images, targets = images.to(device), targets.to(device)
+
+            # forward pass to get outputs
+            preds = model(images)
+            test_metrics.update(preds, targets)
+
+    return test_metrics.compute()
