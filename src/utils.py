@@ -108,3 +108,23 @@ def test_model(model: nn.Module,
             test_metrics.update(preds, targets)
 
     return test_metrics.compute()
+
+
+def image_prediction(model,
+                     image,
+                     device: str = "auto"):
+    
+    if device == "auto":
+        device = check_gpu_available()
+    
+    model.to(device)
+    model.eval()
+    
+    with torch.no_grad():
+        image = image.to(device)
+        if image.dim() == 3:
+            image.unsqueeze_(0) # Model expects batches in 4D
+            
+        predictions = model(image)
+        
+    return predictions
