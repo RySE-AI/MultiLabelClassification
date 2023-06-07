@@ -199,8 +199,8 @@ class MultiLabelClassifier(pl.LightningModule):
         self.valid_metrics(logits, targets)
 
         # Logging
-        self.log("val_loss", val_loss, on_step=True, on_epoch=True)
-        self.log_dict(self.valid_metrics, on_step=True, on_epoch=True)
+        self.log("val_loss", val_loss, on_step=False, on_epoch=True)
+        self.log_dict(self.valid_metrics, on_step=False, on_epoch=True)
 
         return val_loss
 
