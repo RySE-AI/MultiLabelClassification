@@ -72,16 +72,18 @@ not so good as on mtgpic's images. This is one of the good examples ;)
 
 # Information
 
-<details close>
-<summary>ToDos</summary>
-- [ ] Upload the sorted data somewhere(Suggestions? Is it allowed to upload the data (copyrights?))
+Feel free to ask me if you have any questions to my projects or if you have 
+suggestions for improvement. :)
+
+### TODOs
+- Upload the sorted data somewhere(Suggestions? Is it allowed to upload the data (copyrights?))
   - maybe create a shell script to download the data I used and sort them...
   - or upload the data to lfs?
-- [ ] Finish documentation/docstrings
-- [ ] Create a dockerfile for the streamlit app
-- [ ] Use captum for explainable AI on some examples
-- [ ] test streamlit app on another laptop/pc
-</details>
+- Finish documentation/docstrings
+- Create a dockerfile for the streamlit app
+- Use captum for explainable AI on some examples
+- test streamlit app on another laptop/pc
+
 
 
 # Setup Details
@@ -96,7 +98,7 @@ Ventura 13.3.1 (a)
 
 Python Manager: Conda/pip <br />
 Editor: PyCharm CE and VSCode <br />
-Notes: Obsidian
+Notes: Obsidian <br />
 Terminal: zsh <br />
 Package Manager: Homebrew
 
