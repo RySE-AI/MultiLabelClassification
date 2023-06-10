@@ -1,6 +1,6 @@
 # Mutli-Label Image Classification with Pytorch Lightning
 
-The purpose of this project is to learn and implement a multi-label image
+The purpose of this project is to learn how to implement a multi-label image
 classification model by using Lightning. The focus of this project will not be 
 solely on the classifier itself but rather on the implementation process and
 associated considerations.
@@ -13,15 +13,15 @@ create a streamlit app as well.
 First and foremost I want to learn how to use several modules like lightning, 
 MLFlow and streamlit. It was kind a random to choose this task but if offers a 
 learning opportunity for myself.
-Of course you can use an object detection model to detect several objects in an
-image but sometimes it's faster for me to use torch's ImageFolder style labeling
-instead of using CVAT (not considering the (semi-)automatic or iterative
-labeling). So I adapted the torchvision ImageFolder class for multi-label
-classification tasks.
+I believe that for a manageable amount of classes it can be faster to
+use torch's ImageFolder style labeling instead of using labeling tools
+like CVAT. So I adapted the torchvision ImageFolder class for multi-label
+classification tasks. For an unknown amount of classes — or a high amount for
+that matter — i would recommend using CVAT or similar tools.
 
 ### <u>What's the difference to multi-class classification?</u>
-- Multi-class: Predicting one class per each image/data
-- Multi-label: Predicting one or more class/label per each image/data
+- Multi-class: Predicting one class per image/data
+- Multi-label: Predicting one or more class/label per image/data
 
 **_Visual concept of multilabel:_** <br/>
 <img src="img/NeuralNetwork_MultiLabel_Concept.svg" width=500 height=400 align="center"/>
@@ -30,11 +30,11 @@ classification tasks.
 **Important: Content, both literal and graphical, is copyrighted by Wizards of
 the Coast. This is a fan project with non-comercial usage!**
 
-I made my own little "MNIST" example for multi-label classification by using
+I made my own example for multi-label classification by using
 Magic the Gathering cards from mtgpics. I guess that there is no real life use
-case for it but as I mentioned it is more for learning purposes. So the task will
-be to predict the color of the card and whether it's a creature or a special
-(spell/instant/enchantment) with one classifier.
+case for it but as I mentioned before this project is for learning purposes. 
+The task will be to predict the color of the card and whether it's a creature
+or a special (spell/instant/enchantment) with one classifier.
 
 To get the images I built a [webscraper](scripts/mtgpics_card_scraper.py) with
 request and bs4. I scraped the images of several card-decks and sorted them into
@@ -48,8 +48,8 @@ for more details about the data/images.
 
 Followed by the data exploration I trained 3 different models in 
 [this notebook](notebooks/01_Training_with_Lightning.ipynb) and tracked their 
-results on a local MLFlow instance. In all experiment I used a Resnet18 as my
-backbone and I used my Macbook GPU to train the model.
+results on a local MLFlow instance. In all experiments I used a Resnet18 as my
+backbone and I trained the models on my M1 GPU.
 
 <img src="img/MLFlow_tracking_results_table.png" width=700/>
 
@@ -57,8 +57,8 @@ backbone and I used my Macbook GPU to train the model.
 2. Experiment: pretrained backbone
 3. Experiment: untrained backbone + normalized on own train dataset
 
-By looking at the test metrics (Accuracy, Precision, Recall) the 2nd experiment
-leads to the best results. So I used the best checkpoint and performed some
+The 2nd experiment leads to the best results in Accuracy, Precision, Recall. 
+So I used the best checkpoint and performed some
 [visual inference](notebooks/02_Model_Inference.ipynb) on the test dataset.
 Furthermore I used streamlit to create a little prediction app, where you're 
 able to pass any image to it and get a confidence score to each class (sigmoid prediction).
