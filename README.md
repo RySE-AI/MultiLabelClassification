@@ -69,7 +69,26 @@ The model is able to make prediction on real cards as well but as expected it's
 not so good as on mtgpic's images. This is one of the good examples ;)
 
 
+# Run the streamlit app with docker
 
+I pushed the image to [Dockerhub](https://hub.docker.com/repository/docker/ryseai/magic_the_gathering_streamlit/general).
+To run the container, use the following command in your terminal:
+
+```bash
+docker run -p 8501:8501 ryseai/magic_the_gathering_streamlit:v0.1-dev
+```
+It should display this:
+
+<img src="img/streamlit_test/docker_run_streamlit_app.png" width=700/>
+
+`-p 8501:8501`: is the default port of streamlit
+
+If you start the container, you can access the app via http://0.0.0.0:8501.
+
+Attention: If you doesn't mount your torch .cache it will download the resnet18
+first. So that's why the load_model() step at beginning will take some time. 
+Look at the streamlit docs for further [explanations](https://docs.streamlit.io/knowledge-base/tutorials/deploy/docker)
+about the deployment with docker.
 # Information
 
 Feel free to ask me if you have any questions to my projects or if you have 
@@ -80,9 +99,8 @@ suggestions for improvement. :)
   - maybe create a shell script to download the data I used and sort them...
   - or upload the data to lfs?
 - Finish documentation/docstrings
-- Create a dockerfile for the streamlit app
 - Use captum for explainable AI on some examples
-- test streamlit app on another laptop/pc
+- test streamlit app on another laptop/pc/os
 
 
 
