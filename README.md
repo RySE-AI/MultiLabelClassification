@@ -30,10 +30,13 @@ that matter — i would recommend using CVAT or similar tools.
 **Important: Content, both literal and graphical, is copyrighted by Wizards of
 the Coast. This is a fan project with non-comercial usage!**
 
-I made my own example for multi-label classification by using
-Magic the Gathering cards from mtgpics. I guess that there is no real life use
-case for it but as I mentioned before this project is for learning purposes. 
-The task will be to predict the color of the card and whether it's a creature
+Recently I was at my parents home and I randomly saw my old magic the gathering
+cards. I thought that this would be good and comprehensible example for a multi-label
+classifier. So I made my own example by using Magic the Gathering card images from
+mtgpics. I guess that there is no real life use case for it but as I mentioned
+before this project is for learning purposes. 
+
+SO the task will be to predict the color of the card and whether it's a creature
 or a special (spell/instant/enchantment) with one classifier.
 
 To get the images I built a [webscraper](scripts/mtgpics_card_scraper.py) with
@@ -89,6 +92,10 @@ Attention: If you doesn't mount your torch .cache it will download the resnet18
 first. So that's why the load_model() step at beginning will take some time. 
 Look at the streamlit docs for further [explanations](https://docs.streamlit.io/knowledge-base/tutorials/deploy/docker)
 about the deployment with docker.
+
+*Attention 2:* I build the container for arm64 archs. It works on a amd64 but
+it's really slow! I'll try to look up how to setup a multi plattform container!
+
 # Information
 
 Feel free to ask me if you have any questions to my projects or if you have 
